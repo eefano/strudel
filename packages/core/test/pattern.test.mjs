@@ -55,7 +55,7 @@ import { n, s } from '../controls.mjs';
 
 const st = (begin, end) => new State(ts(begin, end));
 const ts = (begin, end) => new TimeSpan(Fraction(begin), Fraction(end));
-const hap = (whole, part, value, context = {}) => new Hap(whole, part, value, context);
+const hap = (whole, part, value, context = new Map()) => new Hap(whole, part, value, context);
 
 const third = Fraction(1, 3);
 const twothirds = Fraction(2, 3);
@@ -118,10 +118,10 @@ describe('Hap', () => {
         return [newState, newValue];
       };
       const state = { incrementme: 10 };
-      const ev1 = new Hap(ts(0, 1), ts(0, 1), stateful_value, {}, true);
+      const ev1 = new Hap(ts(0, 1), ts(0, 1), stateful_value, new Map(), true);
       const [state2, ev2] = ev1.resolveState(state);
       const [state3, ev3] = ev1.resolveState(state2);
-      expect(ev3).toStrictEqual(new Hap(ts(0, 1), ts(0, 1), 11, {}, false));
+      expect(ev3).toStrictEqual(new Hap(ts(0, 1), ts(0, 1), 11, new Map(), false));
       expect(state3).toStrictEqual({ incrementme: 12 });
     });
   });
@@ -408,7 +408,7 @@ describe('Pattern', () => {
       );
     });
     it('copes with breaking up events across cycles', () => {
-      expect(pure('a').slow(2)._fastGap(2).setContext({}).query(st(0, 2))).toStrictEqual([
+      expect(pure('a').slow(2)._fastGap(2).setContext(new Map()).query(st(0, 2))).toStrictEqual([
         hap(ts(0, 1), ts(0, 0.5), 'a'),
         hap(ts(0.5, 1.5), ts(1, 1.5), 'a'),
       ]);
@@ -472,8 +472,8 @@ describe('Pattern', () => {
   });
   describe('slow()', () => {
     it('Supports zero-length queries', () => {
-      expect(steady('a').slow(1).setContext({}).queryArc(0, 0)).toStrictEqual(
-        steady('a').setContext({}).queryArc(0, 0),
+      expect(steady('a').slow(1).setContext(new Map()).queryArc(0, 0)).toStrictEqual(
+        steady('a').setContext(new Map()).queryArc(0, 0),
       );
     });
   });

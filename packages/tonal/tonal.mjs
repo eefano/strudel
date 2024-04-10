@@ -151,18 +151,18 @@ export const transpose = register('transpose', function (intervalOrSemitones, pa
 
 export const scaleTranspose = register('scaleTranspose', function (offset /* : number | string */, pat) {
   return pat.withHap((hap) => {
-    if (!hap.context.scale) {
+    if (!hap.context.has('scale')) {
       throw new Error('can only use scaleTranspose after .scale');
     }
     if (typeof hap.value === 'object')
       return hap.withValue(() => ({
         ...hap.value,
-        note: scaleOffset(hap.context.scale, Number(offset), hap.value.note),
+        note: scaleOffset(hap.context.get('scale'), Number(offset), hap.value.note),
       }));
     if (typeof hap.value !== 'string') {
       throw new Error('can only use scaleTranspose with notes');
     }
-    return hap.withValue(() => scaleOffset(hap.context.scale, Number(offset), hap.value));
+    return hap.withValue(() => scaleOffset(hap.context.get('scale'), Number(offset), hap.value));
   });
 });
 
@@ -243,6 +243,10 @@ export const scale = register('scale', function (scale, pat) {
       })
       .outerJoin()
       // legacy:
-      .withHap((hap) => hap.setContext({ ...hap.context, scale }))
+      .withHap((hap) => {
+        const m = new Map(hap.context);
+        m.set('scale', scale);
+        return hap.setContext(m);
+      })
   );
 });

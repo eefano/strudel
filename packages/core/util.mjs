@@ -324,6 +324,15 @@ export function objectMap(obj, fn) {
   return Object.fromEntries(Object.entries(obj).map(([k, v], i) => [k, fn(v, k, i)]));
 }
 
+export function combineContexts(a, b) {
+  const m = new Map(a.context);
+  for (const item of b.context.entries()) {
+    m.set(...item);
+  }
+  m.set('locations', (a.context.get('locations') || []).concat(b.context.get('locations') || []));
+  return m;
+}
+
 // Floating point versions, see Fraction for rational versions
 // // greatest common divisor
 // export const gcd = function (x, y, ...z) {

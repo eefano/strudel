@@ -4,6 +4,7 @@ Copyright (C) 2022 Strudel contributors - see <https://github.com/tidalcycles/st
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Affero General Public License for more details. You should have received a copy of the GNU Affero General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 import Fraction from './fraction.mjs';
+import { combineContexts } from './util.mjs';
 
 export class Hap {
   /*
@@ -21,7 +22,7 @@ export class Hap {
       class is named called 'Hap'.
       */
 
-  constructor(whole, part, value, context = {}, stateful = false) {
+  constructor(whole, part, value, context = new Map(), stateful = false) {
     this.whole = whole;
     this.part = part;
     this.value = value;
@@ -92,7 +93,8 @@ export class Hap {
   }
 
   hasTag(tag) {
-    return this.context.tags?.includes(tag);
+    const tags = this.context.get('tags');
+    return tags === undefined ? undefined : tags.includes(tag);
   }
 
   resolveState(state) {
@@ -158,8 +160,7 @@ export class Hap {
   }
 
   combineContext(b) {
-    const a = this;
-    return { ...a.context, ...b.context, locations: (a.context.locations || []).concat(b.context.locations || []) };
+    return combineContexts(this, b);
   }
 
   setContext(context) {

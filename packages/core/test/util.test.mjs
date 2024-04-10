@@ -105,7 +105,7 @@ describe('freqToMidi', () => {
   });
 });
 describe('getFrequency', () => {
-  const happify = (val, context = {}) => pure(val).firstCycle()[0].setContext(context);
+  const happify = (val, context = new Map()) => pure(val).firstCycle()[0].setContext(context);
   it('should turn note into frequency', () => {
     expect(getFrequency(happify('a4'))).toEqual(440);
     expect(getFrequency(happify('a3'))).toEqual(220);
@@ -161,7 +161,7 @@ describe('compose', () => {
 });
 
 describe('getPlayableNoteValue', () => {
-  const happify = (val, context = {}) => pure(val).firstCycle()[0].setContext(context);
+  const happify = (val, context = new Map()) => pure(val).firstCycle()[0].setContext(context);
   it('should return object "note" property', () => {
     expect(getPlayableNoteValue(happify({ note: 'a4' }))).toEqual('a4');
   });

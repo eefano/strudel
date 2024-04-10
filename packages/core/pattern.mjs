@@ -10,7 +10,18 @@ import Hap from './hap.mjs';
 import State from './state.mjs';
 import { unionWithObj } from './value.mjs';
 
-import { compose, removeUndefineds, flatten, id, listRange, curry, _mod, numeralArgs, parseNumeral } from './util.mjs';
+import {
+  compose,
+  removeUndefineds,
+  flatten,
+  id,
+  listRange,
+  curry,
+  _mod,
+  numeralArgs,
+  parseNumeral,
+  combineContexts,
+} from './util.mjs';
 import drawLine from './drawLine.mjs';
 import { logger } from './logger.mjs';
 
@@ -206,14 +217,7 @@ export class Pattern {
     const pat_val = this;
     const query = function (state) {
       const withWhole = function (a, b) {
-        return new Hap(
-          choose_whole(a.whole, b.whole),
-          b.part,
-          b.value,
-          Object.assign({}, a.context, b.context, {
-            locations: (a.context.locations || []).concat(b.context.locations || []),
-          }),
-        );
+        return new Hap(choose_whole(a.whole, b.whole), b.part, b.value, combineContexts(a, b));
       };
       const match = function (a) {
         return func(a.value)
@@ -497,7 +501,7 @@ export class Pattern {
    * @noAutocomplete
    */
   stripContext() {
-    return this.withHap((hap) => hap.setContext({}));
+    return this.withHap((hap) => hap.setContext(new Map()));
   }
 
   /**
@@ -514,8 +518,9 @@ export class Pattern {
       end,
     };
     const result = this.withContext((context) => {
-      const locations = (context.locations || []).concat([location]);
-      return { ...context, locations };
+      const m = new Map(context);
+      m.set('locations', context.has('locations') ? context.get('locations').concat([location]) : [location]);
+      return m;
     });
     if (this.__pure) {
       result.__pure = this.__pure;
@@ -815,20 +820,23 @@ export class Pattern {
   // Context methods - ones that deal with metadata
 
   onTrigger(onTrigger, dominant = true) {
-    return this.withHap((hap) =>
-      hap.setContext({
-        ...hap.context,
-        onTrigger: (...args) => {
-          // run previously set trigger, if it exists
-          hap.context.onTrigger?.(...args);
-          onTrigger(...args);
-        },
-        // if dominantTrigger is set to true, the default output (webaudio) will be disabled
-        // when using multiple triggers, you cannot flip this flag to false again!
-        // example: x.csound('CooLSynth').log() as well as x.log().csound('CooLSynth') should work the same
-        dominantTrigger: hap.context.dominantTrigger || dominant,
-      }),
-    );
+    return this.withHap((hap) => {
+      const m = new Map(hap.context);
+
+      m.set('onTrigger', (...args) => {
+        // run previously set trigger, if it exists
+        hap.context.onTrigger?.(...args);
+        onTrigger(...args);
+      });
+
+      // if dominantTrigger is set to true, the default output (webaudio) will be disabled
+      // when using multiple triggers, you cannot flip this flag to false again!
+      // example: x.csound('CooLSynth').log() as well as x.log().csound('CooLSynth') should work the same
+
+      m.set('dominantTrigger', hap.context.get('dominantTrigger') || dominant);
+
+      return hap.setContext(m);
+    });
   }
 
   log(func = (_, hap) => `[hap] ${hap.showWhole(true)}`, getData = (_, hap) => ({ hap })) {
@@ -873,7 +881,7 @@ const congruent = (a, b) => a.spanEquals(b);
 // returned pattern contains arrays of congruent haps
 Pattern.prototype.collect = function () {
   return this.withHaps((haps) =>
-    groupHapsBy(congruent, haps).map((_haps) => new Hap(_haps[0].whole, _haps[0].part, _haps, {})),
+    groupHapsBy(congruent, haps).map((_haps) => new Hap(_haps[0].whole, _haps[0].part, _haps, new Map())),
   );
 };
 
@@ -1481,8 +1489,9 @@ export function register(name, func, patternify = true, preserveTactus = false) 
           const pureLocs = firstArgs.filter((arg) => arg.__pure_loc).map((arg) => arg.__pure_loc);
           result = func(...pureArgs, pat);
           result = result.withContext((context) => {
-            const locations = (context.locations || []).concat(pureLocs);
-            return { ...context, locations };
+            const m = new Map(context);
+            m.set('locations', (context.get('locations') || []).concat(pureLocs));
+            return m;
           });
         } else {
           const [left, ...right] = firstArgs;
@@ -2350,7 +2359,11 @@ export const hsl = register('hsl', (h, s, l, pat) => {
  * @param {string} tag anything unique
  */
 Pattern.prototype.tag = function (tag) {
-  return this.withContext((ctx) => ({ ...ctx, tags: (ctx.tags || []).concat([tag]) }));
+  return this.withContext((ctx) => {
+    const m = new Map(ctx);
+    m.set('tags', (ctx.get('tags') || []).concat([tag]));
+    return m;
+  });
 };
 
 //////////////////////////////////////////////////////////////////////
